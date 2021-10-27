@@ -1,0 +1,48 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Nick Petalas
+
+//@version=5
+indicator("Risk Metric WIP")
+
+// TODO: simplify
+// there should be an easier way to get the min and max of series
+mapRange(_src, _min, _max) =>
+    var _historicMin =  10e10
+    var _historicMax = -10e10
+    _historicMin := math.min(nz(_src, _historicMin), _historicMin)
+    _historicMax := math.max(nz(_src, _historicMax), _historicMax)
+    _min + ((_max - _min) / (_historicMax - _historicMin)) * (_src - _historicMin)
+
+
+lengthD = input(5, title="DMA Period Length (50 for smoother slopes, 5 for precision and volatility)")
+lengthM = input(50, title="WMA Period Length (50 recommended)")
+daily = request.security(syminfo.tickerid, "D", ta.ema(close, lengthD))
+weekly = request.security(syminfo.tickerid, "W", ta.ema(close, lengthM))
+    
+DAILY_OVER_WEEKLY_EMA = mapRange(daily / weekly, 0, 1)
+
+EMA_400 = mapRange(ta.ema(close, 400), 0, 1)
+
+mm = close / ta.sma(close, 200)
+MAYER_MULTIPLE = mapRange(mm, 0, 1)
+
+
+s_len = 356
+avgc = ta.sma(math.abs(ta.change(close)), s_len)
+avgcp = 100 * (avgc / close[s_len - 1])
+s = (ta.sma(avgcp, s_len) - 1) / ta.stdev(avgcp, s_len)
+SHARPE = mapRange(s, 0, 1)
+
+avg = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE) / 3
+
+avgColor = color.from_gradient(avg, 0, 1, color.green, color.red)
+indicatorColor = color.new(color.blue, 60)
+
+plot(avg, title="avg", color=avgColor, linewidth=2)
+plot(DAILY_OVER_WEEKLY_EMA, title="DAILY_OVER_WEEKLY_EMA", color=indicatorColor)
+plot(MAYER_MULTIPLE, title="MAYER_MULTIPLE", color=indicatorColor)
+plot(SHARPE, title="SHARPE", color=indicatorColor)
+
+plot(0.9, title="Sell Limit", color=color.new(color.red,80),   linewidth=2)
+plot(0.1, title="Buy Limit",  color=color.new(color.green,80), linewidth=2)
+// bgcolor(avg > 0.85 ? color.new(color.red, 70) : avg < 0.2 ? (avg < 0.10 ? color.new(color.green, 40) : color.new(color.green, 60)) : na)
