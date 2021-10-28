@@ -1,48 +1,105 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Inspired by Benjamin Cowen's BTC risk idea and BitcoinRaven's oscillators
 // © Nick Petalas
 
 //@version=5
-indicator("Risk Metric WIP")
+indicator("Risk Metric: BTCUSD")
 
-// TODO: simplify
-// there should be an easier way to get the min and max of series
-mapRange(_src, _min, _max) =>
-    var _historicMin =  10e10
-    var _historicMax = -10e10
-    _historicMin := math.min(nz(_src, _historicMin), _historicMin)
-    _historicMax := math.max(nz(_src, _historicMax), _historicMax)
-    _min + ((_max - _min) / (_historicMax - _historicMin)) * (_src - _historicMin)
+normalize(data) =>
+    var min =  10e10
+    var max = -10e10
+    min := math.min(nz(data, min), min)
+    max := math.max(nz(data, max), max)
+    (data - min) / (max - min)
+    
+// normalize based on BTC market cycles
+normalizeByMarketCycle(data) =>
+    d1 = time <= timestamp('2011-10-19') ? data : na
+    d2 = time > timestamp('2011-10-19') and time <= timestamp('2015-01-14') ? data : na
+    d3 = time > timestamp('2015-01-14') and time <= timestamp('2018-12-15') ? data : na
+    d4 = time > timestamp('2018-12-15') ? data : na
+    normalized = not na(d1) ? normalize(d1) : (not na(d2) ? normalize(d2) : (not na(d3) ? normalize(d3) : (not na(d4) ? normalize(d4) : na)))
+        
+    
 
+src = input.source(close, title="Source")
 
+// experimental
+normalizeStrategy(data) =>
+    // multi = math.log((time-1279324800000)/1000/60/60/24) 
+    // adjustedForTime = multi * normalize(data)
+    // normalize(adjustedForTime)
+    normalizeByMarketCycle(data)
+    
+///// DAILY_OVER_WEEKLY_EMA ///// 
 lengthD = input(5, title="DMA Period Length (50 for smoother slopes, 5 for precision and volatility)")
 lengthM = input(50, title="WMA Period Length (50 recommended)")
-daily = request.security(syminfo.tickerid, "D", ta.ema(close, lengthD))
-weekly = request.security(syminfo.tickerid, "W", ta.ema(close, lengthM))
-    
-DAILY_OVER_WEEKLY_EMA = mapRange(daily / weekly, 0, 1)
+daily = request.security(syminfo.tickerid, "D", ta.ema(src, lengthD))
+weekly = request.security(syminfo.tickerid, "W", ta.ema(src, lengthM))
+DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly)
 
-EMA_400 = mapRange(ta.ema(close, 400), 0, 1)
+///// MAYER_MULTIPLE ///// 
+mm = src / ta.sma(src, 200)
+MAYER_MULTIPLE = normalizeStrategy(mm)
 
-mm = close / ta.sma(close, 200)
-MAYER_MULTIPLE = mapRange(mm, 0, 1)
-
-
+///// SHARPE ///// FIXME
 s_len = 356
-avgc = ta.sma(math.abs(ta.change(close)), s_len)
-avgcp = 100 * (avgc / close[s_len - 1])
-s = (ta.sma(avgcp, s_len) - 1) / ta.stdev(avgcp, s_len)
-SHARPE = mapRange(s, 0, 1)
+ret = ta.change(src)
+s = (ta.sma(ret, s_len) - 1) / ta.stdev(ret, s_len)
+SHARPE = normalizeStrategy(s)
 
-avg = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE) / 3
+///// PRICE_OVER_52W_MA ///// 
+PRICE_OVER_52W_MA = normalizeStrategy(src / ta.ema(src, 365))
 
-avgColor = color.from_gradient(avg, 0, 1, color.green, color.red)
-indicatorColor = color.new(color.blue, 60)
+///// RISK_400_MA /////
+RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400))
 
-plot(avg, title="avg", color=avgColor, linewidth=2)
-plot(DAILY_OVER_WEEKLY_EMA, title="DAILY_OVER_WEEKLY_EMA", color=indicatorColor)
-plot(MAYER_MULTIPLE, title="MAYER_MULTIPLE", color=indicatorColor)
-plot(SHARPE, title="SHARPE", color=indicatorColor)
+///// AVG ///// 
+AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + PRICE_OVER_52W_MA + RISK_400_MA) / 5.0
 
-plot(0.9, title="Sell Limit", color=color.new(color.red,80),   linewidth=2)
-plot(0.1, title="Buy Limit",  color=color.new(color.green,80), linewidth=2)
-// bgcolor(avg > 0.85 ? color.new(color.red, 70) : avg < 0.2 ? (avg < 0.10 ? color.new(color.green, 40) : color.new(color.green, 60)) : na)
+///// POWER_LAW ///// 
+plaw = math.log10(src) - ta.linreg(src, 265, 0) // FIXME
+POWER_LAW = normalizeStrategy(plaw)
+
+
+///// PLOT ///// 
+red = #FF0000AA
+green = #00FF00AA
+avgColor = color.from_gradient(AVG, 0, 1, green, red)
+
+showOscillators = input(false, title="Show Oscillators?")
+oscillatorColor = showOscillators? #FFFFFF50 : na
+
+
+avg = plot(AVG, title="AVG", color=avgColor, linewidth=3)
+plot(DAILY_OVER_WEEKLY_EMA, title="DAILY_OVER_WEEKLY_EMA", color=oscillatorColor)
+plot(MAYER_MULTIPLE, title="MAYER_MULTIPLE", color=oscillatorColor)
+plot(SHARPE, title="SHARPE", color=oscillatorColor)
+plot(PRICE_OVER_52W_MA, title="PRICE_OVER_52W_MA", color=oscillatorColor)
+plot(RISK_400_MA, title="RISK_400_MA", color=oscillatorColor)
+// plot(POWER_LAW, title="POWER_LAW", color=color.yellow)
+
+SELL_LIMIT = 0.9
+BUY_LIMIT = 0.1
+
+bullcolor = AVG < BUY_LIMIT  ?  green    : na
+bearcolor = AVG > SELL_LIMIT ?  red  : na
+
+
+sell = plot(SELL_LIMIT, title="", color=#FF0000AA,   linewidth=1)
+buy = plot(BUY_LIMIT, title="",  color=#00FF00AA, linewidth=1)
+// fill(avg, sell, bearcolor, title="sell")
+// fill(buy, avg, bullcolor, title="buy")
+
+
+
+///// EXTRA LINES ///// 
+plot(1,     title="",  color=#FF0000FF, linewidth=1)
+plot(0.8,   title="",  color=#FF000080, linewidth=1)
+plot(0.7,   title="",  color=#FF000040, linewidth=1)
+plot(0.5,   title="",  color=#00FF0020, linewidth=1)
+plot(0.4,   title="",  color=#00FF0020, linewidth=1)
+plot(0.3,   title="",  color=#00FF0040, linewidth=1)
+plot(0.2,   title="",  color=#00FF0080, linewidth=1)
+plot(0,     title="",  color=#00FF00FF, linewidth=1)
+
