@@ -3,7 +3,9 @@
 // © Nick Petalas
 
 //@version=5
-indicator("Risk Metric: BTCUSD")
+indicator("Risk Metric: BTCUSD", max_bars_back = 5000)
+
+daysSinceGenesis(t) => math.floor((t - timestamp('2009-01-03'))/1000/60/60/24)
 
 normalize(data) =>
     var min =  10e10
@@ -21,14 +23,16 @@ normalizeByMarketCycle(data) =>
     normalized = not na(d1) ? normalize(d1) : (not na(d2) ? normalize(d2) : (not na(d3) ? normalize(d3) : (not na(d4) ? normalize(d4) : na)))
         
     
-
+linReg(data) =>
+    numBars = ta.barssince(time <= timestamp('2011-01-01')) 
+    len = numBars > 0 ? numBars : 1 
+    reg = ta.linreg(data, len, 0) 
+    
 src = input.source(close, title="Source")
+
 
 // experimental
 normalizeStrategy(data) =>
-    // multi = math.log((time-1279324800000)/1000/60/60/24) 
-    // adjustedForTime = multi * normalize(data)
-    // normalize(adjustedForTime)
     normalizeByMarketCycle(data)
     
 ///// DAILY_OVER_WEEKLY_EMA ///// 
@@ -48,18 +52,22 @@ ret = ta.change(src)
 s = (ta.sma(ret, s_len) - 1) / ta.stdev(ret, s_len)
 SHARPE = normalizeStrategy(s)
 
-///// PRICE_OVER_52W_MA ///// 
-PRICE_OVER_52W_MA = normalizeStrategy(src / ta.ema(src, 365))
-
 ///// RISK_400_MA /////
 RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400))
 
-///// AVG ///// 
-AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + PRICE_OVER_52W_MA + RISK_400_MA) / 5.0
+///// RSI_20 /////
+RSI = normalizeStrategy(ta.rsi(src, 20))
 
-///// POWER_LAW ///// 
-plaw = math.log10(src) - ta.linreg(src, 265, 0) // FIXME
-POWER_LAW = normalizeStrategy(plaw)
+///// PUELL_MULTIPLE /////
+btcIssuance = 7200 / math.pow(2, math.floor((daysSinceGenesis(time)-bar_index)/1458))
+usdIssuance = btcIssuance * src
+MAusdIssuance = ta.sma(usdIssuance, 365)
+pm = usdIssuance / MAusdIssuance
+PUELL_MULTIPLE = normalizeStrategy(pm)
+
+///// AVG ///// 
+AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + RISK_400_MA + RSI + PUELL_MULTIPLE) / 6.0
+
 
 
 ///// PLOT ///// 
@@ -75,31 +83,30 @@ avg = plot(AVG, title="AVG", color=avgColor, linewidth=3)
 plot(DAILY_OVER_WEEKLY_EMA, title="DAILY_OVER_WEEKLY_EMA", color=oscillatorColor)
 plot(MAYER_MULTIPLE, title="MAYER_MULTIPLE", color=oscillatorColor)
 plot(SHARPE, title="SHARPE", color=oscillatorColor)
-plot(PRICE_OVER_52W_MA, title="PRICE_OVER_52W_MA", color=oscillatorColor)
 plot(RISK_400_MA, title="RISK_400_MA", color=oscillatorColor)
+plot(RSI, title="RSI", color=oscillatorColor)
+plot(PUELL_MULTIPLE, title="PUELL_MULTIPLE", color=oscillatorColor)
 // plot(POWER_LAW, title="POWER_LAW", color=color.yellow)
 
-SELL_LIMIT = 0.9
-BUY_LIMIT = 0.1
+SELL_LIMIT = input.float(0.9, title="Buy limit")
+BUY_LIMIT = input.float(0.1, title="Sell limit")
 
 bullcolor = AVG < BUY_LIMIT  ?  green    : na
 bearcolor = AVG > SELL_LIMIT ?  red  : na
 
 
-sell = plot(SELL_LIMIT, title="", color=#FF0000AA,   linewidth=1)
-buy = plot(BUY_LIMIT, title="",  color=#00FF00AA, linewidth=1)
-// fill(avg, sell, bearcolor, title="sell")
-// fill(buy, avg, bullcolor, title="buy")
-
+sell = plot(SELL_LIMIT, title="Buy Limit", color=#FF0000AA,   linewidth=1)
+buy = plot(BUY_LIMIT, title="Sell Limit",  color=#00FF00AA, linewidth=1)
+fill(avg, sell, bearcolor, title="sell")
+fill(buy, avg, bullcolor, title="buy")
 
 
 ///// EXTRA LINES ///// 
-plot(1,     title="",  color=#FF0000FF, linewidth=1)
-plot(0.8,   title="",  color=#FF000080, linewidth=1)
-plot(0.7,   title="",  color=#FF000040, linewidth=1)
-plot(0.5,   title="",  color=#00FF0020, linewidth=1)
-plot(0.4,   title="",  color=#00FF0020, linewidth=1)
-plot(0.3,   title="",  color=#00FF0040, linewidth=1)
-plot(0.2,   title="",  color=#00FF0080, linewidth=1)
-plot(0,     title="",  color=#00FF00FF, linewidth=1)
-
+hline(1,     title="",  color=#FF0000FF, linewidth=1, linestyle=hline.style_dotted)
+hline(0.8,   title="",  color=#FF000080, linewidth=1, linestyle=hline.style_dotted)
+hline(0.7,   title="",  color=#FF000040, linewidth=1, linestyle=hline.style_dotted)
+hline(0.5,   title="",  color=#00FF0020, linewidth=1, linestyle=hline.style_dotted)
+hline(0.4,   title="",  color=#00FF0020, linewidth=1, linestyle=hline.style_dotted)
+hline(0.3,   title="",  color=#00FF0040, linewidth=1, linestyle=hline.style_dotted)
+hline(0.2,   title="",  color=#00FF0080, linewidth=1, linestyle=hline.style_dotted)
+hline(0,    title="",   color=#00FF00FF, linewidth=1, linestyle=hline.style_dotted)
