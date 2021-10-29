@@ -5,6 +5,8 @@
 //@version=5
 indicator("Risk Metric: BTCUSD", max_bars_back = 5000)
 
+var startDate = timestamp('2013-01-01')
+
 daysSinceGenesis(t) => math.floor((t - timestamp('2009-01-03'))/1000/60/60/24)
 
 normalize(data) =>
@@ -29,13 +31,13 @@ linReg(data) =>
     len = numBars > 0 ? numBars : 1 
     reg = ta.linreg(data, len, 0) 
     
-temp = input.source(close, title="Source")
-src = na(temp) or temp < 0 ? 0 : temp
+src = input.source(close, title="Source")
 
 
 // experimental
-normalizeStrategy(data) =>
-    normalize(data)
+normalizeStrategy(data, smoothen = false) =>
+    d = smoothen ? ta.sma(data, 5) : data
+    normalize(d)
     
 ///// DAILY_OVER_WEEKLY_EMA ///// 
 lengthD = input(5, title="DMA Period Length (50 for smoother slopes, 5 for precision and volatility)")
@@ -48,7 +50,7 @@ DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly)
 mm = src / ta.sma(src, 200)
 MAYER_MULTIPLE = normalizeStrategy(mm)
 
-///// SHARPE ///// FIXME
+///// SHARPE /////
 s_len = 356
 ret = ta.change(src)
 s = (ta.sma(ret, s_len) - 1) / ta.stdev(ret, s_len)
@@ -61,7 +63,7 @@ RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400))
 RSI = normalizeStrategy(ta.rsi(src, 20))
 
 ///// PUELL_MULTIPLE /////
-btcIssuance = 7200 / math.pow(2, math.floor((daysSinceGenesis(time)-bar_index)/1458))
+btcIssuance = 7200 / math.pow(2, math.floor((daysSinceGenesis(time)-bar_index)/1458)) // likely wrong
 usdIssuance = btcIssuance * src
 MAusdIssuance = ta.sma(usdIssuance, 365)
 pm = usdIssuance / MAusdIssuance
@@ -72,10 +74,12 @@ AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + RISK_400_MA + RSI + PUE
 
 adjustAvg(data) =>
     lr = linReg(src)
-    multi = math.log(lr)
+    multi = math.log(lr) * math.log(ta.atr(5))
+    // multi = math.log(lr)
     data * multi
+
     
-ADJ_AVG = normalizeStrategy(adjustAvg(AVG))
+ADJ_AVG = normalizeStrategy(adjustAvg(AVG), smoothen = true)
 
 
 ///// PLOT ///// 
@@ -120,3 +124,4 @@ hline(0.2,   title="",  color=#00FF0080, linewidth=1, linestyle=hline.style_dott
 hline(0,    title="",   color=#00FF00FF, linewidth=1, linestyle=hline.style_dotted)
 
 // plot(AVG)
+// plot(ta.atr(10))
