@@ -1,5 +1,6 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // Inspired by Benjamin Cowen's BTC risk idea and BitcoinRaven's oscillators
+// Overlay version
 // © Nick Petalas
 
 //@version=5
@@ -75,11 +76,21 @@ adjustAvg(data) =>
     lr = linReg(src)
     multi = math.log(lr) * math.log(ta.atr(5)) // feels too arbitrary, open to suggestions
     data * multi
+
     
 ADJ_AVG_NORM = normalizeStrategy(adjustAvg(AVG), true)
 
-///// DRAW THE LINE ///// 
-red = #FF0000FF
+///// JET COLORMAP APPROXIMATION /////
+blue = #0000FFFF
+cyan = #00FFFFFF
 green = #00FF00FF
-avgColor = color.from_gradient(ADJ_AVG_NORM, 0, 1, green, red)
+yellow = #FFFF00AA
+red = #FF0000AA
+
+avgColor = ADJ_AVG_NORM <= 0.25 ? color.from_gradient(ADJ_AVG_NORM, 0.00, 0.25, blue, cyan) : 
+           ADJ_AVG_NORM <= 0.50 ? color.from_gradient(ADJ_AVG_NORM, 0.25, 0.50, cyan, green) : 
+           ADJ_AVG_NORM <= 0.75 ? color.from_gradient(ADJ_AVG_NORM, 0.50, 0.75, green, yellow) : 
+           color.from_gradient(ADJ_AVG_NORM, 0.75, 1, yellow, red)
+
+///// DRAW A THICK LINE ON TOP OF THE BARS /////
 plot(src, "", avgColor, 6)
