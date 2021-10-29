@@ -3,7 +3,7 @@
 // © Nick Petalas
 
 //@version=5
-indicator("Risk Metric: BTCUSD", max_bars_back = 5000)
+indicator("Risk Metric: BTCUSD Overlay", max_bars_back = 5000, overlay=true, max_lines_count=500)
 
 var startDate = timestamp('2013-01-01')
 
@@ -33,7 +33,6 @@ linReg(data) =>
     
 src = input.source(close, title="Source")
 
-
 // experimental
 normalizeStrategy(data, smoothen = false) =>
     d = smoothen ? ta.sma(data, 5) : data
@@ -44,80 +43,43 @@ lengthD = input(5, title="DMA Period Length (50 for smoother slopes, 5 for preci
 lengthM = input(50, title="WMA Period Length (50 recommended)")
 daily = request.security(syminfo.tickerid, "D", ta.ema(src, lengthD))
 weekly = request.security(syminfo.tickerid, "W", ta.ema(src, lengthM))
-DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly)
+DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly, true)
 
 ///// MAYER_MULTIPLE ///// 
 mm = src / ta.sma(src, 200)
-MAYER_MULTIPLE = normalizeStrategy(mm)
+MAYER_MULTIPLE = normalizeStrategy(mm, true)
 
 ///// SHARPE /////
 s_len = 356
 ret = ta.change(src)
 s = (ta.sma(ret, s_len) - 1) / ta.stdev(ret, s_len)
-SHARPE = normalizeStrategy(s)
+SHARPE = normalizeStrategy(s, true)
 
 ///// RISK_400_MA /////
-RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400))
+RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400), true)
 
 ///// RSI_20 /////
-RSI = normalizeStrategy(ta.rsi(src, 20))
+RSI = normalizeStrategy(ta.rsi(src, 20), true)
 
 ///// PUELL_MULTIPLE /////
 btcIssuance = 7200 / math.pow(2, math.floor((daysSinceGenesis(time)-bar_index)/1458)) // likely wrong
 usdIssuance = btcIssuance * src
 MAusdIssuance = ta.sma(usdIssuance, 365)
 pm = usdIssuance / MAusdIssuance
-PUELL_MULTIPLE = normalizeStrategy(pm)
+PUELL_MULTIPLE = normalizeStrategy(pm, true)
 
 ///// AVG ///// 
 AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + RISK_400_MA + RSI + PUELL_MULTIPLE) / 6.0
 
 adjustAvg(data) =>
     lr = linReg(src)
-    multi = math.log(lr) * math.log(ta.atr(5))
-    // multi = math.log(lr)
+    multi = math.log(lr) * math.log(ta.atr(5)) // feels too arbitrary, open to suggestions
     data * multi
-
     
-ADJ_AVG = normalizeStrategy(adjustAvg(AVG), smoothen = true)
+ADJ_AVG_NORM = normalizeStrategy(adjustAvg(AVG), true)
 
-
-///// PLOT ///// 
-red = #FF0000AA
-green = #00FF00AA
-avgColor = color.from_gradient(ADJ_AVG, 0, 1, green, red)
-
-showOscillators = input(false, title="Show Oscillators?")
-oscillatorColor = showOscillators? #FFFFFF50 : na
-
-
-avg = plot(ADJ_AVG, title="AVG", color=avgColor, linewidth=3)
-plot(DAILY_OVER_WEEKLY_EMA, title="DAILY_OVER_WEEKLY_EMA", color=oscillatorColor)
-plot(MAYER_MULTIPLE, title="MAYER_MULTIPLE", color=oscillatorColor)
-plot(SHARPE, title="SHARPE", color=oscillatorColor)
-plot(RISK_400_MA, title="RISK_400_MA", color=oscillatorColor)
-plot(RSI, title="RSI", color=oscillatorColor)
-plot(PUELL_MULTIPLE, title="PUELL_MULTIPLE", color=oscillatorColor)
-
-SELL_LIMIT = input.float(0.9, title="Buy limit")
-BUY_LIMIT = input.float(0.1, title="Sell limit")
-
-bullcolor = ADJ_AVG < BUY_LIMIT  ?  green    : na
-bearcolor = ADJ_AVG > SELL_LIMIT ?  red  : na
-
-
-sell = plot(SELL_LIMIT, title="Buy Limit", color=#FF0000AA,   linewidth=1)
-buy = plot(BUY_LIMIT, title="Sell Limit",  color=#00FF00AA, linewidth=1)
-fill(avg, sell, bearcolor, title="sell")
-fill(buy, avg, bullcolor, title="buy")
-
-
-///// EXTRA LINES ///// 
-hline(1,     title="",  color=#FF0000FF, linewidth=1, linestyle=hline.style_dotted)
-hline(0.8,   title="",  color=#FF000080, linewidth=1, linestyle=hline.style_dotted)
-hline(0.7,   title="",  color=#FF000040, linewidth=1, linestyle=hline.style_dotted)
-hline(0.5,   title="",  color=#00FF0020, linewidth=1, linestyle=hline.style_dotted)
-hline(0.4,   title="",  color=#00FF0020, linewidth=1, linestyle=hline.style_dotted)
-hline(0.3,   title="",  color=#00FF0040, linewidth=1, linestyle=hline.style_dotted)
-hline(0.2,   title="",  color=#00FF0080, linewidth=1, linestyle=hline.style_dotted)
-hline(0,    title="",   color=#00FF00FF, linewidth=1, linestyle=hline.style_dotted)
+///// DRAW THE LINE ///// 
+red = #FF0000FF
+green = #00FF00FF
+avgColor = color.from_gradient(ADJ_AVG_NORM, 0, 1, green, red)
+plot(src, "", avgColor, 6)
