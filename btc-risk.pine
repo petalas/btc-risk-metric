@@ -24,16 +24,18 @@ normalizeByMarketCycle(data) =>
         
     
 linReg(data) =>
-    numBars = ta.barssince(time <= timestamp('2011-01-01')) 
+    t0 = timestamp('2011-10-19')
+    numBars = ta.barssince(time <= t0) 
     len = numBars > 0 ? numBars : 1 
     reg = ta.linreg(data, len, 0) 
     
-src = input.source(close, title="Source")
+temp = input.source(close, title="Source")
+src = na(temp) or temp < 0 ? 0 : temp
 
 
 // experimental
 normalizeStrategy(data) =>
-    normalizeByMarketCycle(data)
+    normalize(data)
     
 ///// DAILY_OVER_WEEKLY_EMA ///// 
 lengthD = input(5, title="DMA Period Length (50 for smoother slopes, 5 for precision and volatility)")
@@ -68,18 +70,24 @@ PUELL_MULTIPLE = normalizeStrategy(pm)
 ///// AVG ///// 
 AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + RISK_400_MA + RSI + PUELL_MULTIPLE) / 6.0
 
+adjustAvg(data) =>
+    lr = linReg(src)
+    multi = math.log(lr)
+    data * multi
+    
+ADJ_AVG = normalizeStrategy(adjustAvg(AVG))
 
 
 ///// PLOT ///// 
 red = #FF0000AA
 green = #00FF00AA
-avgColor = color.from_gradient(AVG, 0, 1, green, red)
+avgColor = color.from_gradient(ADJ_AVG, 0, 1, green, red)
 
 showOscillators = input(false, title="Show Oscillators?")
 oscillatorColor = showOscillators? #FFFFFF50 : na
 
 
-avg = plot(AVG, title="AVG", color=avgColor, linewidth=3)
+avg = plot(ADJ_AVG, title="AVG", color=avgColor, linewidth=3)
 plot(DAILY_OVER_WEEKLY_EMA, title="DAILY_OVER_WEEKLY_EMA", color=oscillatorColor)
 plot(MAYER_MULTIPLE, title="MAYER_MULTIPLE", color=oscillatorColor)
 plot(SHARPE, title="SHARPE", color=oscillatorColor)
@@ -91,8 +99,8 @@ plot(PUELL_MULTIPLE, title="PUELL_MULTIPLE", color=oscillatorColor)
 SELL_LIMIT = input.float(0.9, title="Buy limit")
 BUY_LIMIT = input.float(0.1, title="Sell limit")
 
-bullcolor = AVG < BUY_LIMIT  ?  green    : na
-bearcolor = AVG > SELL_LIMIT ?  red  : na
+bullcolor = ADJ_AVG < BUY_LIMIT  ?  green    : na
+bearcolor = ADJ_AVG > SELL_LIMIT ?  red  : na
 
 
 sell = plot(SELL_LIMIT, title="Buy Limit", color=#FF0000AA,   linewidth=1)
@@ -110,3 +118,5 @@ hline(0.4,   title="",  color=#00FF0020, linewidth=1, linestyle=hline.style_dott
 hline(0.3,   title="",  color=#00FF0040, linewidth=1, linestyle=hline.style_dotted)
 hline(0.2,   title="",  color=#00FF0080, linewidth=1, linestyle=hline.style_dotted)
 hline(0,    title="",   color=#00FF00FF, linewidth=1, linestyle=hline.style_dotted)
+
+// plot(AVG)
