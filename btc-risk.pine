@@ -1,5 +1,5 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// Inspired by Benjamin Cowen's BTC risk idea and BitcoinRaven's oscillators
+// Inspired by Benjamin Cowen's BTC risk idea. Special thanks to BitcoinRaven for working most of the oscillators involved.
 // © Nick Petalas
 
 //@version=5
@@ -17,13 +17,12 @@ normalize(data) =>
     (data - min) / (max - min)
     
 // normalize based on BTC market cycles
-normalizeByMarketCycle(data) =>
-    d1 = time <= timestamp('2011-10-19') ? data : na
-    d2 = time > timestamp('2011-10-19') and time <= timestamp('2015-01-14') ? data : na
-    d3 = time > timestamp('2015-01-14') and time <= timestamp('2018-12-15') ? data : na
-    d4 = time > timestamp('2018-12-15') ? data : na
-    normalized = not na(d1) ? normalize(d1) : (not na(d2) ? normalize(d2) : (not na(d3) ? normalize(d3) : (not na(d4) ? normalize(d4) : na)))
-        
+// normalizeByMarketCycle(data) =>
+//     d1 = time <= timestamp('2011-10-19') ? data : na
+//     d2 = time > timestamp('2011-10-19') and time <= timestamp('2015-01-14') ? data : na
+//     d3 = time > timestamp('2015-01-14') and time <= timestamp('2018-12-15') ? data : na
+//     d4 = time > timestamp('2018-12-15') ? data : na
+//     normalized = not na(d1) ? normalize(d1) : (not na(d2) ? normalize(d2) : (not na(d3) ? normalize(d3) : (not na(d4) ? normalize(d4) : na)))     
     
 linReg(data) =>
     t0 = timestamp('2011-10-19')
