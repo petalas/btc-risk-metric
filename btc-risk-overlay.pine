@@ -85,4 +85,5 @@ avgColor = ADJ_AVG_NORM <= 0.25 ? color.from_gradient(ADJ_AVG_NORM, 0.00, 0.25, 
            color.from_gradient(ADJ_AVG_NORM, 0.75, 1, yellow, red)
 
 ///// DRAW A THICK LINE ON TOP OF THE BARS /////
-plot(src, "", avgColor, 6)
+lineThickness = input.int(6, title="Thickness")
+plot(src, "", avgColor, lineThickness)
