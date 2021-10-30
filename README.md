@@ -19,12 +19,19 @@ It's the same logic in both, one of them in an overlay and the other one is an o
 ## Preview
 ![BTC Risk Indicator Preview](preview.png?raw=true "BTC Risk Indicator Preview")
 
+## How to use it
+~~It's been published on TradingView as an indicator~~, just search for:
+- [Risk Metric: BTCUSD](https://www.tradingview.com/script/PGeybikC-Risk-Metric-BTCUSD/) and/or
+- [Risk Metric: BTCUSD Overlay](https://www.tradingview.com/script/oOyrfrV8-Risk-Metric-BTCUSD-Overlay/)
+
+Update: they got taken down, apparently references to the github project are not allowed (pretty lame), will republish next month. For now you can just copy and paste the scripts in the pine editor.
+
 ## Metrics involved so far, **open to suggestions** for more.
 
-- [x] 5 DAY EMA / 50 WEEK EMA
+- [x] [EMA](https://www.investopedia.com/terms/e/ema.asp) 5 Daily / [EMA](https://www.investopedia.com/terms/e/ema.asp) 50 Weekly
 - [x] [Mayer Multiple](https://stats.buybitcoinworldwide.com/mayermultiple/)
 - [x] [Sharpe Ratio](https://www.investopedia.com/terms/s/sharperatio.asp)
-- [x] Price / 400 DAY EMA
+- [x] Price / [EMA](https://www.investopedia.com/terms/e/ema.asp) 400
 - [x] [RSI](https://www.investopedia.com/terms/r/rsi.asp) 20
 - [x] [Puell Multiple](https://www.lookintobitcoin.com/charts/puell-multiple/)
 - [ ] [Power Law](https://stats.buybitcoinworldwide.com/long-term-power-law/)
@@ -74,7 +81,7 @@ I am just now getting familiar with pine script and I am also not an expert in t
 ### Credits
 Inspired by [Benjamin Cowen](https://www.youtube.com/channel/UCRvqjQPSeaWn-uEx-w0XOIg)'s BTC risk idea.
 
-Special thanks to [Bitcoin Raven](https://www.youtube.com/channel/UCrlkqSLmHL8ZPVpOxj7La4Q) for working out most of the oscillators involved and [Jay](https://www.youtube.com/channel/UC_bG7yHgT_xOUKvI2Hvo6Vg) for suggestions.
+Special thanks to [M. Almusimie](https://www.youtube.com/channel/UCrlkqSLmHL8ZPVpOxj7La4Q) for working out most of the oscillators involved and [Jay](https://www.youtube.com/channel/UC_bG7yHgT_xOUKvI2Hvo6Vg) for suggestions.
 
 
 ## If you find this useful please consider supporting this project.
