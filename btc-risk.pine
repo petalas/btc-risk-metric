@@ -1,11 +1,13 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// Inspired by Benjamin Cowen's BTC risk idea. Special thanks to BitcoinRaven for working most of the oscillators involved.
+// Inspired by Benjamin Cowen's BTC risk idea. Special thanks to BitcoinRaven for working out most of the oscillators involved.
 // © Nick Petalas
 
 //@version=5
-indicator("Risk Metric: BTCUSD", max_bars_back = 5000, max_boxes_count=500)
+indicator("Risk Metric: BTCUSD", max_bars_back = 5000)
 
-var startDate = timestamp('2013-01-01')
+var int startDate = na
+if barstate.isfirst
+    startDate := time
 
 daysSinceGenesis(t) => math.floor((t - timestamp('2009-01-03'))/1000/60/60/24)
 
@@ -26,12 +28,11 @@ normalize(data) =>
         
     
 linReg(data) =>
-    t0 = timestamp('2011-10-19')
-    numBars = ta.barssince(time <= t0) 
+    numBars = ta.barssince(time <= startDate) 
     len = numBars > 0 ? numBars : 1 
     reg = ta.linreg(data, len, 0) 
     
-src = input.source(close, title="Source")
+src = input.source(ohlc4, title="Source")
 
 
 // experimental
@@ -83,11 +84,11 @@ ADJ_AVG_NORM = normalizeStrategy(ADJ_AVG, true)
 
 
 ///// JET GRADIENT APPROXIMATION /////
-blue = #0000FFFF
-cyan = #00FFFFFF
-green = #00FF00FF
-yellow = #FFFF00FF
-red = #FF0000FF
+blue    = #0000FFFF
+cyan    = #00FFFFFF
+green   = #00FF00FF
+yellow  = #FFFF00FF
+red     = #FF0000FF
 
 avgColor = ADJ_AVG_NORM <= 0.25 ? color.from_gradient(ADJ_AVG_NORM, 0.00, 0.25, blue, cyan) : 
            ADJ_AVG_NORM <= 0.50 ? color.from_gradient(ADJ_AVG_NORM, 0.25, 0.50, cyan, green) : 
@@ -127,5 +128,3 @@ hline(0.3, title="", color=#00FF0040, linewidth=1, linestyle=hline.style_dotted)
 hline(0.2, title="", color=#00FF0080, linewidth=1, linestyle=hline.style_dotted)
 hline(0.1, title="", color=#00FF00AA, linewidth=1, linestyle=hline.style_dotted)
 hline(0.0, title="", color=#00FF00FF, linewidth=1, linestyle=hline.style_dotted)
-
-// plot(normalize(AVG))

@@ -38,7 +38,8 @@ Average the above metrics and then try to adjust / correct the average (explaine
 
 ## Main problem
 
-Because of the logarithmic nature of BTC growth and diminishing returns the peaks of our oscillator get lower and lower and the bottoms get higher and higher. We are also dealing with data (prices) that span multiple orders of magnitute which is not ideal when mapping to the 0..1 range.
+Because of the logarithmic nature of BTC growth and diminishing returns the peaks of our oscillator get lower and lower and the bottoms get higher and higher.
+We are also dealing with data (prices) that span multiple orders of magnitude which is not ideal when mapping to the 0..1 range.
 
 ## Current logic to adjust / correct the average
 
@@ -73,7 +74,7 @@ I am just now getting familiar with pine script and I am also not an expert in t
 ### Credits
 Inspired by [Benjamin Cowen](https://www.youtube.com/channel/UCRvqjQPSeaWn-uEx-w0XOIg)'s BTC risk idea.
 
-Special thanks to [Bitcoin Raven](https://www.youtube.com/channel/UCrlkqSLmHL8ZPVpOxj7La4Q) for working most of the oscillators involved and [Jay](https://www.youtube.com/channel/UC_bG7yHgT_xOUKvI2Hvo6Vg) for suggestions.
+Special thanks to [Bitcoin Raven](https://www.youtube.com/channel/UCrlkqSLmHL8ZPVpOxj7La4Q) for working out most of the oscillators involved and [Jay](https://www.youtube.com/channel/UC_bG7yHgT_xOUKvI2Hvo6Vg) for suggestions.
 
 
 ## If you find this useful please consider supporting this project.

@@ -1,12 +1,14 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// Inspired by Benjamin Cowen's BTC risk idea. Special thanks to BitcoinRaven for working most of the oscillators involved.
+// Inspired by Benjamin Cowen's BTC risk idea. Special thanks to BitcoinRaven for working out most of the oscillators involved.
 // Overlay version
 // © Nick Petalas
 
 //@version=5
-indicator("Risk Metric: BTCUSD Overlay", max_bars_back = 5000, overlay=true, max_lines_count=500)
+indicator("Risk Metric: BTCUSD Overlay", max_bars_back = 5000, overlay=true)
 
-var startDate = timestamp('2013-01-01')
+var int startDate = na
+if barstate.isfirst
+    startDate := time
 
 daysSinceGenesis(t) => math.floor((t - timestamp('2009-01-03'))/1000/60/60/24)
 
@@ -18,12 +20,11 @@ normalize(data) =>
     (data - min) / (max - min)
 
 linReg(data) =>
-    t0 = timestamp('2011-10-19')
-    numBars = ta.barssince(time <= t0) 
+    numBars = ta.barssince(time <= startDate) 
     len = numBars > 0 ? numBars : 1 
     reg = ta.linreg(data, len, 0) 
     
-src = input.source(close, title="Source")
+src = input.source(ohlc4, title="Source")
 
 // experimental
 normalizeStrategy(data, smoothen = false) =>
@@ -71,12 +72,12 @@ adjustAvg(data) =>
     
 ADJ_AVG_NORM = normalizeStrategy(adjustAvg(AVG), true)
 
-///// JET COLORMAP APPROXIMATION /////
-blue = #0000FFFF
-cyan = #00FFFFFF
-green = #00FF00FF
-yellow = #FFFF00FF
-red = #FF0000FF
+///// JET GRADIENT APPROXIMATION /////
+blue    = #0000FFFF
+cyan    = #00FFFFFF
+green   = #00FF00FF
+yellow  = #FFFF00FF
+red     = #FF0000FF
 
 avgColor = ADJ_AVG_NORM <= 0.25 ? color.from_gradient(ADJ_AVG_NORM, 0.00, 0.25, blue, cyan) : 
            ADJ_AVG_NORM <= 0.50 ? color.from_gradient(ADJ_AVG_NORM, 0.25, 0.50, cyan, green) : 
