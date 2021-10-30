@@ -22,7 +22,8 @@ normalize(data) =>
 //     d2 = time > timestamp('2011-10-19') and time <= timestamp('2015-01-14') ? data : na
 //     d3 = time > timestamp('2015-01-14') and time <= timestamp('2018-12-15') ? data : na
 //     d4 = time > timestamp('2018-12-15') ? data : na
-//     normalized = not na(d1) ? normalize(d1) : (not na(d2) ? normalize(d2) : (not na(d3) ? normalize(d3) : (not na(d4) ? normalize(d4) : na)))     
+//     normalized = not na(d1) ? normalize(d1) : (not na(d2) ? normalize(d2) : (not na(d3) ? normalize(d3) : (not na(d4) ? normalize(d4) : na)))
+        
     
 linReg(data) =>
     t0 = timestamp('2011-10-19')
@@ -43,30 +44,30 @@ lengthD = input(5, title="DMA Period Length (50 for smoother slopes, 5 for preci
 lengthM = input(50, title="WMA Period Length (50 recommended)")
 daily = request.security(syminfo.tickerid, "D", ta.ema(src, lengthD))
 weekly = request.security(syminfo.tickerid, "W", ta.ema(src, lengthM))
-DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly, true)
+DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly)
 
 ///// MAYER_MULTIPLE ///// 
 mm = src / ta.sma(src, 200)
-MAYER_MULTIPLE = normalizeStrategy(mm, true)
+MAYER_MULTIPLE = normalizeStrategy(mm)
 
 ///// SHARPE /////
 s_len = 356
 ret = ta.change(src)
 s = (ta.sma(ret, s_len) - 1) / ta.stdev(ret, s_len)
-SHARPE = normalizeStrategy(s, true)
+SHARPE = normalizeStrategy(s)
 
 ///// RISK_400_MA /////
-RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400), true)
+RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400))
 
 ///// RSI_20 /////
-RSI = normalizeStrategy(ta.rsi(src, 20), true)
+RSI = normalizeStrategy(ta.rsi(src, 20))
 
 ///// PUELL_MULTIPLE /////
 btcIssuance = 7200 / math.pow(2, math.floor((daysSinceGenesis(time)-bar_index)/1458)) // likely wrong
 usdIssuance = btcIssuance * src
 MAusdIssuance = ta.sma(usdIssuance, 365)
 pm = usdIssuance / MAusdIssuance
-PUELL_MULTIPLE = normalizeStrategy(pm, true)
+PUELL_MULTIPLE = normalizeStrategy(pm)
 
 ///// AVG ///// 
 AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + RISK_400_MA + RSI + PUELL_MULTIPLE) / 6.0
@@ -74,7 +75,6 @@ AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + RISK_400_MA + RSI + PUE
 adjustAvg(data) =>
     lr = linReg(src)
     multi = math.log(lr) * math.log(ta.atr(5))
-    // multi = math.log(lr)
     data * multi
 
     
@@ -86,8 +86,8 @@ ADJ_AVG_NORM = normalizeStrategy(ADJ_AVG, true)
 blue = #0000FFFF
 cyan = #00FFFFFF
 green = #00FF00FF
-yellow = #FFFF00AA
-red = #FF0000AA
+yellow = #FFFF00FF
+red = #FF0000FF
 
 avgColor = ADJ_AVG_NORM <= 0.25 ? color.from_gradient(ADJ_AVG_NORM, 0.00, 0.25, blue, cyan) : 
            ADJ_AVG_NORM <= 0.50 ? color.from_gradient(ADJ_AVG_NORM, 0.25, 0.50, cyan, green) : 
@@ -105,17 +105,15 @@ plot(SHARPE, title="SHARPE", color=oscillatorColor)
 plot(RISK_400_MA, title="RISK_400_MA", color=oscillatorColor)
 plot(RSI, title="RSI", color=oscillatorColor)
 plot(PUELL_MULTIPLE, title="PUELL_MULTIPLE", color=oscillatorColor)
-// plot(POWER_LAW, title="POWER_LAW", color=color.yellow)
 
-SELL_LIMIT = input.float(0.9, title="Buy limit")
-BUY_LIMIT = input.float(0.1, title="Sell limit")
-
-bullcolor = ADJ_AVG_NORM < BUY_LIMIT  ?  green    : na
-bearcolor = ADJ_AVG_NORM > SELL_LIMIT ?  red  : na
-sell = plot(SELL_LIMIT, title="Buy Limit", color=na)
-buy = plot(BUY_LIMIT, title="Sell Limit",  color=na)
-fill(avg, sell, bearcolor, title="sell")
-fill(buy, avg, bullcolor, title="buy")
+// SELL_LIMIT = input.float(0.9, title="Buy limit")
+// BUY_LIMIT  = input.float(0.1, title="Sell limit")
+// bullcolor = ADJ_AVG_NORM < BUY_LIMIT  ?  green    : na
+// bearcolor = ADJ_AVG_NORM > SELL_LIMIT ?  red  : na
+// sell = plot(SELL_LIMIT, title="Buy Limit", color=na)
+// buy = plot(BUY_LIMIT, title="Sell Limit",  color=na)
+// fill(avg, sell, bearcolor, title="sell")
+// fill(buy, avg, bullcolor, title="buy")
 
 
 ///// HORIZONTAL LINES ///// 
@@ -129,3 +127,5 @@ hline(0.3, title="", color=#00FF0040, linewidth=1, linestyle=hline.style_dotted)
 hline(0.2, title="", color=#00FF0080, linewidth=1, linestyle=hline.style_dotted)
 hline(0.1, title="", color=#00FF00AA, linewidth=1, linestyle=hline.style_dotted)
 hline(0.0, title="", color=#00FF00FF, linewidth=1, linestyle=hline.style_dotted)
+
+// plot(normalize(AVG))

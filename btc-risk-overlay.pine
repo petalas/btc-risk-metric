@@ -35,30 +35,30 @@ lengthD = input(5, title="DMA Period Length (50 for smoother slopes, 5 for preci
 lengthM = input(50, title="WMA Period Length (50 recommended)")
 daily = request.security(syminfo.tickerid, "D", ta.ema(src, lengthD))
 weekly = request.security(syminfo.tickerid, "W", ta.ema(src, lengthM))
-DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly, true)
+DAILY_OVER_WEEKLY_EMA = normalizeStrategy(daily / weekly)
 
 ///// MAYER_MULTIPLE ///// 
 mm = src / ta.sma(src, 200)
-MAYER_MULTIPLE = normalizeStrategy(mm, true)
+MAYER_MULTIPLE = normalizeStrategy(mm)
 
 ///// SHARPE /////
 s_len = 356
 ret = ta.change(src)
 s = (ta.sma(ret, s_len) - 1) / ta.stdev(ret, s_len)
-SHARPE = normalizeStrategy(s, true)
+SHARPE = normalizeStrategy(s)
 
 ///// RISK_400_MA /////
-RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400), true)
+RISK_400_MA = normalizeStrategy(src / ta.ema(src, 400))
 
 ///// RSI_20 /////
-RSI = normalizeStrategy(ta.rsi(src, 20), true)
+RSI = normalizeStrategy(ta.rsi(src, 20))
 
 ///// PUELL_MULTIPLE /////
 btcIssuance = 7200 / math.pow(2, math.floor((daysSinceGenesis(time)-bar_index)/1458)) // likely wrong
 usdIssuance = btcIssuance * src
 MAusdIssuance = ta.sma(usdIssuance, 365)
 pm = usdIssuance / MAusdIssuance
-PUELL_MULTIPLE = normalizeStrategy(pm, true)
+PUELL_MULTIPLE = normalizeStrategy(pm)
 
 ///// AVG ///// 
 AVG = (DAILY_OVER_WEEKLY_EMA + MAYER_MULTIPLE + SHARPE + RISK_400_MA + RSI + PUELL_MULTIPLE) / 6.0
@@ -75,8 +75,8 @@ ADJ_AVG_NORM = normalizeStrategy(adjustAvg(AVG), true)
 blue = #0000FFFF
 cyan = #00FFFFFF
 green = #00FF00FF
-yellow = #FFFF00AA
-red = #FF0000AA
+yellow = #FFFF00FF
+red = #FF0000FF
 
 avgColor = ADJ_AVG_NORM <= 0.25 ? color.from_gradient(ADJ_AVG_NORM, 0.00, 0.25, blue, cyan) : 
            ADJ_AVG_NORM <= 0.50 ? color.from_gradient(ADJ_AVG_NORM, 0.25, 0.50, cyan, green) : 
